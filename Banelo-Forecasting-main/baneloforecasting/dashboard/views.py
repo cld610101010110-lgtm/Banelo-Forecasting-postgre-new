@@ -1933,7 +1933,7 @@ def add_product_view(request):
         quantity = float(data.get('quantity', 0))
 
         # Set both id and firebase_id to the same UUID (mobile app schema)
-        # Note: Only inventory_a and inventory_b exist in database, no 'quantity' column
+        # Note: Only inventory_a and inventory_b exist in database, no 'quantity' or 'image_uri' columns
         product = Product.objects.create(
             id=product_uuid,
             firebase_id=product_uuid,
@@ -1943,8 +1943,7 @@ def add_product_view(request):
             unit=data.get('unit', 'pcs'),
             inventory_a=float(data.get('inventoryA', quantity)),  # Default to quantity if not specified
             inventory_b=float(data.get('inventoryB', 0)),
-            cost_per_unit=float(data.get('costPerUnit', 0)),
-            image_uri=data.get('imageUri', '')
+            cost_per_unit=float(data.get('costPerUnit', 0))
         )
 
         print(f"✅ Product created with id={product.id}, firebase_id={product.firebase_id}")
@@ -1993,9 +1992,7 @@ def update_product_view(request):
             product.inventory_b = float(data['inventoryB'])
         if 'costPerUnit' in data:
             product.cost_per_unit = float(data['costPerUnit'])
-        if 'imageUri' in data:
-            product.image_uri = data['imageUri']
-        # Note: 'quantity' is not a DB column, only inventory_a and inventory_b exist
+# Note: 'quantity' and 'image_uri' are not DB columns, only inventory_a and inventory_b exist
 
         product.save()
 
