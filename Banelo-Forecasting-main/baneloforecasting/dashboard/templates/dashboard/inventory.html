@@ -1127,7 +1127,7 @@
                         <!-- Edit & Delete Buttons -->
                         <div style="position: absolute; top: 15px; right: 15px; display: flex; flex-direction: column; gap: 10px; z-index: 10;">
                             <!-- Edit Button -->
-                            <button onclick="editProduct('{{ product.id }}', '{{ product.name }}', {{ product.price }}, '{{ product.category }}', {{ product.stock }}, '{{ product.image }}')"
+                            <button onclick="editProduct('{{ product.id }}', '{{ product.name }}', {{ product.price }}, '{{ product.category }}', {{ product.stock }}, '{{ product.image }}', {{ product.inventory_a }}, {{ product.inventory_b }}, {{ product.cost_per_unit }})"
                                     title="Edit Product"
                                     style="background: #4CAF50;
                            width: 40px;
@@ -1570,7 +1570,7 @@
                 }
             }
 
-            function editProduct(id, name, price, category, stock, imageUrl = '') {
+            function editProduct(id, name, price, category, stock, imageUrl = '', inventoryA = 0, inventoryB = 0, costPerUnit = 0) {
                 currentEditId = id;
                 document.getElementById('productModal').classList.add('active');
                 document.getElementById('modalTitle').textContent = 'Edit Product';
@@ -1584,6 +1584,17 @@
 
                 document.getElementById('productCategory').value = firebaseCategory;
                 document.getElementById('productStock').value = stock;
+
+                // Populate inventory fields if they exist (for ingredients)
+                if (document.getElementById('productInventoryA')) {
+                    document.getElementById('productInventoryA').value = inventoryA || 0;
+                }
+                if (document.getElementById('productInventoryB')) {
+                    document.getElementById('productInventoryB').value = inventoryB || 0;
+                }
+                if (document.getElementById('productCostPerUnit')) {
+                    document.getElementById('productCostPerUnit').value = costPerUnit || 0;
+                }
 
                 // Toggle ingredient fields based on category
                 toggleIngredientFields();
