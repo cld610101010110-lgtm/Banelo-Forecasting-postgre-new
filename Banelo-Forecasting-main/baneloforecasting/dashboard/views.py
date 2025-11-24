@@ -1212,8 +1212,10 @@ def add_recipe_api(request):
 
         # Create recipe
         import uuid
+        recipe_uuid = str(uuid.uuid4())
         recipe = Recipe.objects.create(
-            firebase_id=str(uuid.uuid4()),
+            id=recipe_uuid,
+            firebase_id=recipe_uuid,
             product_firebase_id=product_firebase_id,
             product_name=product_name,
             product_number=0
@@ -1223,7 +1225,9 @@ def add_recipe_api(request):
 
         # Add ingredients
         for ingredient in ingredients:
+            ingredient_uuid = str(uuid.uuid4())
             RecipeIngredient.objects.create(
+                id=ingredient_uuid,
                 recipe_id=recipe.id,
                 recipe_firebase_id=recipe.firebase_id,
                 ingredient_firebase_id=ingredient.get('ingredientFirebaseId'),
@@ -1924,10 +1928,15 @@ def add_product_view(request):
     try:
         data = json.loads(request.body)
         print("\n🔥 ADD PRODUCT API CALLED (PostgreSQL)")
+        print(f"Received data: {data}")
 
         import uuid
+        product_uuid = str(uuid.uuid4())
+
+        # Set both id and firebase_id to the same UUID (mobile app schema)
         product = Product.objects.create(
-            firebase_id=str(uuid.uuid4()),
+            id=product_uuid,
+            firebase_id=product_uuid,
             name=data.get('name'),
             category=data.get('category'),
             price=float(data.get('price', 0)),
@@ -1939,6 +1948,7 @@ def add_product_view(request):
             image_uri=data.get('imageUri', '')
         )
 
+        print(f"✅ Product created with id={product.id}, firebase_id={product.firebase_id}")
         log_audit('Product Added', request.user, f'Added product: {product.name}')
 
         return JsonResponse({
@@ -1949,6 +1959,8 @@ def add_product_view(request):
 
     except Exception as e:
         print(f"❌ Error adding product: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'message': str(e)})
 
 
