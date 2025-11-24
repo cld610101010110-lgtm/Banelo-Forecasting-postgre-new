@@ -1934,18 +1934,18 @@ def add_product_view(request):
         product_uuid = str(uuid.uuid4())
 
         # Set both id and firebase_id to the same UUID (mobile app schema)
+        # Only set fields that actually exist in the database
         product = Product.objects.create(
             id=product_uuid,
             firebase_id=product_uuid,
             name=data.get('name'),
             category=data.get('category'),
             price=float(data.get('price', 0)),
-            quantity=float(data.get('quantity', 0)),
             unit=data.get('unit', 'pcs'),
             inventory_a=float(data.get('inventoryA', data.get('quantity', 0))),
-            inventory_b=0,
-            cost_per_unit=float(data.get('costPerUnit', 0)),
-            image_uri=data.get('imageUri', '')
+            inventory_b=float(data.get('inventoryB', 0)),
+            cost_per_unit=float(data.get('costPerUnit', 0))
+            # Note: quantity, stock, image_uri may not exist in mobile app database
         )
 
         print(f"✅ Product created with id={product.id}, firebase_id={product.firebase_id}")
@@ -1979,15 +1979,13 @@ def update_product_view(request):
         except Product.DoesNotExist:
             return JsonResponse({'success': False, 'message': 'Product not found'})
 
-        # Update fields
+        # Update fields (only those that exist in database)
         if 'name' in data:
             product.name = data['name']
         if 'category' in data:
             product.category = data['category']
         if 'price' in data:
             product.price = float(data['price'])
-        if 'quantity' in data:
-            product.quantity = float(data['quantity'])
         if 'unit' in data:
             product.unit = data['unit']
         if 'inventoryA' in data:
@@ -1996,8 +1994,7 @@ def update_product_view(request):
             product.inventory_b = float(data['inventoryB'])
         if 'costPerUnit' in data:
             product.cost_per_unit = float(data['costPerUnit'])
-        if 'imageUri' in data:
-            product.image_uri = data['imageUri']
+        # Note: quantity, stock, image_uri may not exist in mobile database
 
         product.save()
 
