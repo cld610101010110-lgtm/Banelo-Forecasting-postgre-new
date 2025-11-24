@@ -12,11 +12,12 @@ class Product(models.Model):
     """
     Product model - matches PostgreSQL database schema
     Note: Column names use snake_case as in actual database
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    # Primary key
-    id = models.AutoField(primary_key=True)
+    # Primary key - TEXT field that stores UUIDs (mobile app uses UUIDs for id)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
-    # Firebase reference ID
+    # Firebase reference ID (redundant with id, but kept for compatibility)
     firebase_id = models.CharField(
         max_length=255,
         unique=True,
@@ -128,8 +129,9 @@ class Sale(models.Model):
 class Recipe(models.Model):
     """
     Recipe model - matches PostgreSQL database schema
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
     # Firebase IDs
     firebase_id = models.CharField(
@@ -181,8 +183,9 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     """
     RecipeIngredient model - matches PostgreSQL database schema
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
     # Firebase IDs
     firebase_id = models.CharField(
@@ -210,8 +213,9 @@ class RecipeIngredient(models.Model):
     quantity_needed = models.FloatField(db_column='quantity_needed')
     unit = models.CharField(max_length=50, default='g')
 
-    # Recipe foreign key
-    recipe_id = models.IntegerField(
+    # Recipe foreign key (also a UUID string, not integer)
+    recipe_id = models.CharField(
+        max_length=255,
         null=True,
         blank=True,
         db_column='recipe_id'
