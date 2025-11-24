@@ -74,12 +74,10 @@ def calculate_max_servings(product_firebase_id, recipe_id):
             # Get the ingredient product's current stock
             try:
                 ing_product = Product.objects.get(firebase_id=ingredient_product_id)
-                # Use combined inventory (A + B) for available stock
-                inv_a = float(ing_product.inventory_a or 0)
-                inv_b = float(ing_product.inventory_b or 0)
-                available_quantity = inv_a + inv_b
-                if available_quantity == 0:
-                    available_quantity = float(ing_product.quantity or 0)
+                # Use inventory_b (display stock) - this is what mobile app uses for servings
+                # Mobile app: val available = ingredientProduct.quantity.toDouble()
+                # In our DB: quantity property returns inventory_b
+                available_quantity = float(ing_product.inventory_b or 0)
             except Product.DoesNotExist:
                 print(f"      ❌ Ingredient product not found in database!")
                 max_servings_list.append(0)
@@ -1101,7 +1099,7 @@ def recipes_view(request):
                     try:
                         ing_product = Product.objects.get(firebase_id=ingredient_id)
                         ingredient_cost = ing_product.cost_per_unit or 0
-                        inventory_a = ing_product.inventory_a or ing_product.quantity or 0
+                        inventory_a = ing_product.inventory_a or 0
                         inventory_b = ing_product.inventory_b or 0
                         ingredient_stock = inventory_a + inventory_b
                     except Product.DoesNotExist:
@@ -1143,7 +1141,7 @@ def recipes_view(request):
 
         available_ingredients = []
         for ing in ingredients_products:
-            inventory_a = ing.inventory_a or ing.quantity or 0
+            inventory_a = ing.inventory_a or 0
             inventory_b = ing.inventory_b or 0
             total_stock = inventory_a + inventory_b
 
@@ -1401,10 +1399,9 @@ def transfer_inventory_api(request):
         new_inventory_a = inventory_a - transfer_qty
         new_inventory_b = inventory_b + transfer_qty
 
-        # Update database
+        # Update database - only inventory_a and inventory_b are actual DB columns
         product.inventory_a = new_inventory_a
         product.inventory_b = new_inventory_b
-        product.quantity = new_inventory_b  # Update legacy field
         product.save()
 
         print(f"✅ Transferred {transfer_qty} units of {product_name}")
@@ -1466,9 +1463,8 @@ def add_waste_api(request):
         # Deduct from Inventory B
         new_inventory_b = inventory_b - waste_qty
 
-        # Update product
+        # Update product - only inventory_b is actual DB column
         product.inventory_b = new_inventory_b
-        product.quantity = new_inventory_b
         product.save()
 
         # Create waste log entry
@@ -1933,17 +1929,20 @@ def add_product_view(request):
         import uuid
         product_uuid = str(uuid.uuid4())
 
+        # Get quantity from form and set to inventory_a (warehouse stock)
+        quantity = float(data.get('quantity', 0))
+
         # Set both id and firebase_id to the same UUID (mobile app schema)
+        # Note: Only inventory_a and inventory_b exist in database, no 'quantity' column
         product = Product.objects.create(
             id=product_uuid,
             firebase_id=product_uuid,
             name=data.get('name'),
             category=data.get('category'),
             price=float(data.get('price', 0)),
-            quantity=float(data.get('quantity', 0)),
             unit=data.get('unit', 'pcs'),
-            inventory_a=float(data.get('inventoryA', data.get('quantity', 0))),
-            inventory_b=0,
+            inventory_a=float(data.get('inventoryA', quantity)),  # Default to quantity if not specified
+            inventory_b=float(data.get('inventoryB', 0)),
             cost_per_unit=float(data.get('costPerUnit', 0)),
             image_uri=data.get('imageUri', '')
         )
@@ -1986,8 +1985,6 @@ def update_product_view(request):
             product.category = data['category']
         if 'price' in data:
             product.price = float(data['price'])
-        if 'quantity' in data:
-            product.quantity = float(data['quantity'])
         if 'unit' in data:
             product.unit = data['unit']
         if 'inventoryA' in data:
@@ -1998,6 +1995,7 @@ def update_product_view(request):
             product.cost_per_unit = float(data['costPerUnit'])
         if 'imageUri' in data:
             product.image_uri = data['imageUri']
+        # Note: 'quantity' is not a DB column, only inventory_a and inventory_b exist
 
         product.save()
 

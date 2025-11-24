@@ -32,11 +32,7 @@ class Product(models.Model):
     price = models.FloatField(default=0)
     unit = models.CharField(max_length=50, default='pcs')
 
-    # Stock/Quantity fields
-    quantity = models.FloatField(default=0, db_column='quantity')
-    stock = models.FloatField(default=0, null=True, blank=True)
-
-    # Dual inventory system
+    # Dual inventory system (ONLY fields in database)
     inventory_a = models.FloatField(
         default=0,
         db_column='inventory_a',
@@ -45,13 +41,24 @@ class Product(models.Model):
     inventory_b = models.FloatField(
         default=0,
         db_column='inventory_b',
-        help_text='Expendable Stock (used for orders)'
+        help_text='Expendable Stock (used for orders/display)'
     )
     cost_per_unit = models.FloatField(
         default=0,
         db_column='cost_per_unit',
         help_text='Cost per unit for ingredients'
     )
+
+    # Python properties for backward compatibility (not DB columns)
+    @property
+    def quantity(self):
+        """Returns inventory_b (display stock) - mobile app uses this"""
+        return self.inventory_b
+
+    @property
+    def stock(self):
+        """Returns total stock (inventory_a + inventory_b)"""
+        return self.inventory_a + self.inventory_b
 
     # Image URI
     image_uri = models.TextField(
