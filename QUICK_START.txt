@@ -1,0 +1,97 @@
+╔═══════════════════════════════════════════════════════════════╗
+║           BANELO ADMIN INTERFACE - QUICK START                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 SETUP (One-time only)
+────────────────────────────────────────────────────────────────
+
+1. Install Dependencies:
+
+   cd api-server
+   npm install
+   cd ..
+
+   cd Banelo-Forecasting-main/baneloforecasting
+   pip3 install -r requirements.txt
+   cd ../..
+
+2. Configure Database:
+
+   Edit: api-server/.env
+   Set your PostgreSQL password
+
+3. Create Admin User:
+
+   cd Banelo-Forecasting-main/baneloforecasting
+   python3 manage.py createsuperuser
+   cd ../..
+
+🚀 START SERVERS
+────────────────────────────────────────────────────────────────
+
+   ./start-servers.sh
+
+   This starts both:
+   - Mobile POS API (port 3000)
+   - Admin Website (port 8000)
+
+🌐 ACCESS ADMIN INTERFACE
+────────────────────────────────────────────────────────────────
+
+   Local:    http://localhost:8000
+   Network:  http://192.168.254.176:8000
+
+   Login with the admin credentials you created
+
+📱 MOBILE POS API
+────────────────────────────────────────────────────────────────
+
+   Your mobile app should connect to:
+   http://192.168.254.176:3000
+
+✨ WHAT YOU CAN DO
+────────────────────────────────────────────────────────────────
+
+   ✓ Add/Edit/Delete Products
+   ✓ View Sales Data
+   ✓ Manage Inventory (A & B)
+   ✓ Create Recipes for Beverages
+   ✓ Track Waste
+   ✓ View Analytics Dashboard
+   ✓ Export Sales Reports
+
+🛑 STOP SERVERS
+────────────────────────────────────────────────────────────────
+
+   Press Ctrl+C in the terminal
+
+💡 TIPS
+────────────────────────────────────────────────────────────────
+
+   - Both mobile POS and admin use the SAME database
+   - Changes in admin show immediately in mobile app
+   - Changes in mobile app show immediately in admin
+   - Keep PostgreSQL running before starting servers
+
+🐛 TROUBLESHOOTING
+────────────────────────────────────────────────────────────────
+
+   Problem: "Cannot connect to database"
+   Solution: Start PostgreSQL first
+            sudo service postgresql start
+
+   Problem: "Port already in use"
+   Solution: Kill existing process
+            lsof -ti:3000 | xargs kill -9
+            lsof -ti:8000 | xargs kill -9
+
+   Problem: "Module not found"
+   Solution: Install dependencies again
+            cd api-server && npm install
+            cd Banelo-Forecasting-main/baneloforecasting
+            pip3 install -r requirements.txt
+
+📖 FULL DOCUMENTATION
+────────────────────────────────────────────────────────────────
+
+   See: ADMIN_INTERFACE_SETUP.md
