@@ -74,12 +74,10 @@ def calculate_max_servings(product_firebase_id, recipe_id):
             # Get the ingredient product's current stock
             try:
                 ing_product = Product.objects.get(firebase_id=ingredient_product_id)
-                # Use combined inventory (A + B) for available stock
-                inv_a = float(ing_product.inventory_a or 0)
-                inv_b = float(ing_product.inventory_b or 0)
-                available_quantity = inv_a + inv_b
-                if available_quantity == 0:
-                    available_quantity = float(ing_product.quantity or 0)
+                # Use inventory_b (display stock) - this is what mobile app uses for servings
+                # Mobile app: val available = ingredientProduct.quantity.toDouble()
+                # In our DB: quantity property returns inventory_b
+                available_quantity = float(ing_product.inventory_b or 0)
             except Product.DoesNotExist:
                 print(f"      ❌ Ingredient product not found in database!")
                 max_servings_list.append(0)
@@ -1101,7 +1099,7 @@ def recipes_view(request):
                     try:
                         ing_product = Product.objects.get(firebase_id=ingredient_id)
                         ingredient_cost = ing_product.cost_per_unit or 0
-                        inventory_a = ing_product.inventory_a or ing_product.quantity or 0
+                        inventory_a = ing_product.inventory_a or 0
                         inventory_b = ing_product.inventory_b or 0
                         ingredient_stock = inventory_a + inventory_b
                     except Product.DoesNotExist:
@@ -1147,7 +1145,7 @@ def recipes_view(request):
 
         available_ingredients = []
         for ing in ingredients_products:
-            inventory_a = ing.inventory_a or ing.quantity or 0
+            inventory_a = ing.inventory_a or 0
             inventory_b = ing.inventory_b or 0
             total_stock = inventory_a + inventory_b
 
@@ -1221,8 +1219,10 @@ def add_recipe_api(request):
 
         # Create recipe
         import uuid
+        recipe_uuid = str(uuid.uuid4())
         recipe = Recipe.objects.create(
-            firebase_id=str(uuid.uuid4()),
+            id=recipe_uuid,
+            firebase_id=recipe_uuid,
             product_firebase_id=product_firebase_id,
             product_name=product_name,
             product_number=0
@@ -1232,7 +1232,9 @@ def add_recipe_api(request):
 
         # Add ingredients
         for ingredient in ingredients:
+            ingredient_uuid = str(uuid.uuid4())
             RecipeIngredient.objects.create(
+                id=ingredient_uuid,
                 recipe_id=recipe.id,
                 recipe_firebase_id=recipe.firebase_id,
                 ingredient_firebase_id=ingredient.get('ingredientFirebaseId'),
@@ -1406,10 +1408,9 @@ def transfer_inventory_api(request):
         new_inventory_a = inventory_a - transfer_qty
         new_inventory_b = inventory_b + transfer_qty
 
-        # Update database
+        # Update database - only inventory_a and inventory_b are actual DB columns
         product.inventory_a = new_inventory_a
         product.inventory_b = new_inventory_b
-        product.quantity = new_inventory_b  # Update legacy field
         product.save()
 
         print(f"✅ Transferred {transfer_qty} units of {product_name}")
@@ -1471,9 +1472,8 @@ def add_waste_api(request):
         # Deduct from Inventory B
         new_inventory_b = inventory_b - waste_qty
 
-        # Update product
+        # Update product - only inventory_b is actual DB column
         product.inventory_b = new_inventory_b
-        product.quantity = new_inventory_b
         product.save()
 
         # Create waste log entry
@@ -1939,10 +1939,15 @@ def add_product_view(request):
         image_url = data.get('imageUri') or data.get('imageUrl') or ''
 
         import uuid
+        product_uuid = str(uuid.uuid4())
+
+        # Get quantity from form and set to inventory_a (warehouse stock)
         quantity = float(data.get('quantity', 0))
 
+        # Set both id and firebase_id to the same UUID (mobile app schema)
         product = Product.objects.create(
-            firebase_id=str(uuid.uuid4()),
+            id=product_uuid,
+            firebase_id=product_uuid,
             name=data.get('name'),
             category=data.get('category'),
             price=float(data.get('price', 0)),

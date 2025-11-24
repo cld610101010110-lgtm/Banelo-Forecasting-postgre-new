@@ -12,11 +12,12 @@ class Product(models.Model):
     """
     Product model - matches PostgreSQL database schema
     Note: Column names use snake_case as in actual database
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    # Primary key
-    id = models.AutoField(primary_key=True)
+    # Primary key - TEXT field that stores UUIDs (mobile app uses UUIDs for id)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
-    # Firebase reference ID
+    # Firebase reference ID (redundant with id, but kept for compatibility)
     firebase_id = models.CharField(
         max_length=255,
         unique=True,
@@ -31,11 +32,7 @@ class Product(models.Model):
     price = models.FloatField(default=0)
     unit = models.CharField(max_length=50, default='pcs')
 
-    # Stock/Quantity fields
-    quantity = models.FloatField(default=0, db_column='quantity')
-    stock = models.FloatField(default=0, null=True, blank=True)
-
-    # Dual inventory system
+    # Dual inventory system (ONLY fields in database)
     inventory_a = models.FloatField(
         default=0,
         db_column='inventory_a',
@@ -44,7 +41,7 @@ class Product(models.Model):
     inventory_b = models.FloatField(
         default=0,
         db_column='inventory_b',
-        help_text='Expendable Stock (used for orders)'
+        help_text='Expendable Stock (used for orders/display)'
     )
     cost_per_unit = models.FloatField(
         default=0,
@@ -52,12 +49,19 @@ class Product(models.Model):
         help_text='Cost per unit for ingredients'
     )
 
-    # Image URI
-    image_uri = models.TextField(
-        null=True,
-        blank=True,
-        db_column='image_uri'
-    )
+    # Python properties for backward compatibility (not DB columns)
+    @property
+    def quantity(self):
+        """Returns inventory_b (display stock) - mobile app uses this"""
+        return self.inventory_b
+
+    @property
+    def stock(self):
+        """Returns total stock (inventory_a + inventory_b)"""
+        return self.inventory_a + self.inventory_b
+
+    # Note: image_uri column may not exist in mobile app database
+    # If it exists, it will be loaded; if not, it will be None
 
     # Timestamps
     created_at = models.DateTimeField(
@@ -128,8 +132,9 @@ class Sale(models.Model):
 class Recipe(models.Model):
     """
     Recipe model - matches PostgreSQL database schema
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
     # Firebase IDs
     firebase_id = models.CharField(
@@ -181,8 +186,9 @@ class Recipe(models.Model):
 class RecipeIngredient(models.Model):
     """
     RecipeIngredient model - matches PostgreSQL database schema
+    Note: id is a TEXT field in the database (stores UUIDs), not an integer
     """
-    id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=255, primary_key=True, db_column='id')
 
     # Firebase IDs
     firebase_id = models.CharField(
@@ -210,8 +216,9 @@ class RecipeIngredient(models.Model):
     quantity_needed = models.FloatField(db_column='quantity_needed')
     unit = models.CharField(max_length=50, default='g')
 
-    # Recipe foreign key
-    recipe_id = models.IntegerField(
+    # Recipe foreign key (also a UUID string, not integer)
+    recipe_id = models.CharField(
+        max_length=255,
         null=True,
         blank=True,
         db_column='recipe_id'
