@@ -14,8 +14,15 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import update_session_auth_hash
 from django.conf import settings
+from django.db.models import Q
 from datetime import datetime, timedelta
 from collections import defaultdict
+
+# Import models
+from .models import (
+    Product, Sale, Recipe, RecipeIngredient,
+    WasteLog, AuditTrail, MLPrediction, MLModel
+)
 
 # Import API service
 from .api_service import get_api_service
@@ -66,8 +73,13 @@ def calculate_max_servings(product_firebase_id, recipe_id):
 
             # Get the ingredient product's current stock
             try:
-                product = Product.objects.get(firebase_id=ingredient_product_id)
-                available_quantity = product.quantity or 0
+                ing_product = Product.objects.get(firebase_id=ingredient_product_id)
+                # Use combined inventory (A + B) for available stock
+                inv_a = float(ing_product.inventory_a or 0)
+                inv_b = float(ing_product.inventory_b or 0)
+                available_quantity = inv_a + inv_b
+                if available_quantity == 0:
+                    available_quantity = float(ing_product.quantity or 0)
             except Product.DoesNotExist:
                 print(f"      ❌ Ingredient product not found in database!")
                 max_servings_list.append(0)
@@ -479,18 +491,28 @@ def inventory_view(request):
             product_name = product.get('name', 'Unknown')
 
             if category in ['beverage', 'pastries']:
+                recipe_info = None
+
                 # Try matching by Firebase ID first
                 if firebase_id in recipes_by_id:
                     recipe_found = True
-                    # Note: max_servings calculation would need API call or be done server-side
-                    max_servings = None  # Will be calculated via API if needed
+                    recipe_info = recipes_by_id[firebase_id]
                     print(f"✅ Recipe matched by ID for: {product_name}")
 
                 # If not found, try matching by product name
                 elif product_name.lower().strip() in recipes_by_name:
                     recipe_found = True
-                    max_servings = None  # Will be calculated via API if needed
+                    recipe_info = recipes_by_name[product_name.lower().strip()]
                     print(f"✅ Recipe matched by NAME for: {product_name}")
+
+                # Calculate max servings if recipe found
+                if recipe_found and recipe_info:
+                    recipe_id = recipe_info.get('recipeId')
+                    recipe_firebase_id = recipe_info.get('firebaseId')
+
+                    if recipe_id or recipe_firebase_id:
+                        max_servings = calculate_max_servings(firebase_id, recipe_id or recipe_firebase_id)
+                        print(f"   📊 Max servings for {product_name}: {max_servings}")
 
             # Get inventory data
             inventory_a = float(product.get('inventory_a') or product.get('inventoryA') or product.get('quantity', 0) or 0)
