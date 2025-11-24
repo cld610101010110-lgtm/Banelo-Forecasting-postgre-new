@@ -41,14 +41,36 @@ def calculate_max_servings(product_firebase_id, recipe_id):
         print(f"   Recipe ID: {recipe_id}")
 
         # Get all ingredients for this recipe using Django ORM
+        # Try multiple lookup strategies
+        recipe = None
+
+        # Strategy 1: Look up by product_firebase_id (most reliable)
         try:
-            recipe = Recipe.objects.get(id=recipe_id)
+            recipe = Recipe.objects.get(product_firebase_id=product_firebase_id)
+            print(f"   ✅ Recipe found by product_firebase_id")
         except Recipe.DoesNotExist:
+            pass
+
+        # Strategy 2: Look up by recipe id (Django UUID)
+        if not recipe:
+            try:
+                recipe = Recipe.objects.get(id=recipe_id)
+                print(f"   ✅ Recipe found by id")
+            except Recipe.DoesNotExist:
+                pass
+
+        # Strategy 3: Look up by firebase_id
+        if not recipe:
             try:
                 recipe = Recipe.objects.get(firebase_id=str(recipe_id))
+                print(f"   ✅ Recipe found by firebase_id")
             except Recipe.DoesNotExist:
-                print(f"   ❌ Recipe not found")
-                return None
+                pass
+
+        # If still not found, return None
+        if not recipe:
+            print(f"   ❌ Recipe not found (tried product_firebase_id, id, and firebase_id)")
+            return None
 
         ingredients = RecipeIngredient.objects.filter(
             Q(recipe_id=recipe.id) | Q(recipe_firebase_id=recipe.firebase_id)
@@ -1387,11 +1409,15 @@ def transfer_inventory_api(request):
         if not product_id or transfer_qty <= 0:
             return JsonResponse({'success': False, 'message': 'Invalid product or quantity'})
 
+        print(f"🔍 Looking for product with ID: '{product_id}'")
+
         # Get product from PostgreSQL
         try:
             product = Product.objects.get(Q(firebase_id=product_id) | Q(id=product_id))
+            print(f"✅ Product found: {product.name} (Inv A: {product.inventory_a}, Inv B: {product.inventory_b})")
         except Product.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Product not found'})
+            print(f"❌ Product not found with ID: '{product_id}'")
+            return JsonResponse({'success': False, 'message': f'Product not found with ID: {product_id}'})
 
         product_name = product.name
         inventory_a = float(product.inventory_a or 0)
@@ -1993,10 +2019,19 @@ def update_product_view(request):
         if not product_id:
             return JsonResponse({'success': False, 'message': 'Product ID is required'})
 
+        print(f"🔍 Looking for product with ID: '{product_id}'")
+
         try:
             product = Product.objects.get(Q(firebase_id=product_id) | Q(id=product_id))
+            print(f"✅ Product found: {product.name} (firebase_id: {product.firebase_id}, id: {product.id})")
         except Product.DoesNotExist:
-            return JsonResponse({'success': False, 'message': 'Product not found'})
+            print(f"❌ Product not found with ID: '{product_id}'")
+            # Debug: Show what products exist
+            all_products = Product.objects.all()[:5]
+            print(f"📋 Sample products in database:")
+            for p in all_products:
+                print(f"   - {p.name}: firebase_id={p.firebase_id}, id={p.id}")
+            return JsonResponse({'success': False, 'message': f'Product not found with ID: {product_id}'})
 
         # Update fields
         if 'name' in data:
