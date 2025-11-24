@@ -1165,10 +1165,14 @@ def recipes_view(request):
         print(f"✅ Found {len(beverages)} beverages")
         print(f"✅ Found {len(available_ingredients)} ingredients")
 
+        # Convert ingredients to JSON for JavaScript
+        ingredients_json = json.dumps(available_ingredients)
+
         context = {
             'recipes': recipes_list,
             'beverages': beverages,
             'ingredients': available_ingredients,
+            'ingredients_json': ingredients_json,
         }
 
         return render(request, 'dashboard/recipes.html', context)
@@ -1182,6 +1186,7 @@ def recipes_view(request):
             'recipes': [],
             'beverages': [],
             'ingredients': [],
+            'ingredients_json': '[]',
         }
         return render(request, 'dashboard/recipes.html', context)
 

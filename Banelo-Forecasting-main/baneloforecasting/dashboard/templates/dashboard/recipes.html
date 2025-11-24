@@ -789,7 +789,7 @@
 
 <script>
 // Available ingredients from Django context
-const availableIngredients = {{ ingredients|safe }};
+const availableIngredients = {{ ingredients_json|safe }};
 
 let currentEditId = null;
 let ingredientCounter = 0;

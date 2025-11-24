@@ -1244,6 +1244,39 @@
                                 <input type="number" class="form-control" id="productStock" placeholder="0" required>
                             </div>
 
+                            <!-- Unit -->
+                            <div class="form-group">
+                                <label class="form-label">Unit</label>
+                                <select class="form-control" id="productUnit" required>
+                                    <option value="pcs">Pieces (pcs)</option>
+                                    <option value="g">Grams (g)</option>
+                                    <option value="kg">Kilograms (kg)</option>
+                                    <option value="ml">Milliliters (ml)</option>
+                                    <option value="L">Liters (L)</option>
+                                </select>
+                            </div>
+
+                            <!-- Inventory A (for ingredients) -->
+                            <div class="form-group" id="inventoryAGroup" style="display: none;">
+                                <label class="form-label">Inventory A (Storage)</label>
+                                <input type="number" class="form-control" id="productInventoryA" placeholder="0" step="0.01">
+                                <small style="color: #666; font-size: 12px;">For ingredients: warehouse/storage stock</small>
+                            </div>
+
+                            <!-- Inventory B (for ingredients) -->
+                            <div class="form-group" id="inventoryBGroup" style="display: none;">
+                                <label class="form-label">Inventory B (Active)</label>
+                                <input type="number" class="form-control" id="productInventoryB" placeholder="0" step="0.01">
+                                <small style="color: #666; font-size: 12px;">For ingredients: active/in-use stock</small>
+                            </div>
+
+                            <!-- Cost Per Unit (for ingredients) -->
+                            <div class="form-group" id="costPerUnitGroup" style="display: none;">
+                                <label class="form-label">Cost Per Unit (₱)</label>
+                                <input type="number" class="form-control" id="productCostPerUnit" placeholder="0.00" step="0.01">
+                                <small style="color: #666; font-size: 12px;">Cost per unit for inventory tracking</small>
+                            </div>
+
                             <button type="submit" class="btn-submit">
                                 <i class="fas fa-save"></i> Save Product
                             </button>
@@ -1510,11 +1543,31 @@
                 document.getElementById('imageUrl').value = '';
                 document.getElementById('imagePreview').style.display = 'none';
                 document.getElementById('uploadPlaceholder').style.display = 'flex';
+
+                // Hide ingredient fields by default
+                toggleIngredientFields();
             }
 
             function closeModal() {
                 document.getElementById('productModal').classList.remove('active');
                 currentEditId = null;
+            }
+
+            function toggleIngredientFields() {
+                const category = document.getElementById('productCategory').value;
+                const isIngredient = category === 'Ingredients';
+
+                // Show/hide ingredient-specific fields
+                document.getElementById('inventoryAGroup').style.display = isIngredient ? 'block' : 'none';
+                document.getElementById('inventoryBGroup').style.display = isIngredient ? 'block' : 'none';
+                document.getElementById('costPerUnitGroup').style.display = isIngredient ? 'block' : 'none';
+
+                // Clear values if switching away from ingredients
+                if (!isIngredient) {
+                    document.getElementById('productInventoryA').value = '';
+                    document.getElementById('productInventoryB').value = '';
+                    document.getElementById('productCostPerUnit').value = '';
+                }
             }
 
             function editProduct(id, name, price, category, stock, imageUrl = '') {
@@ -1525,12 +1578,15 @@
                 document.getElementById('productPrice').value = price;
                 // Map display category back to Firebase format
                 let firebaseCategory = category;
-                if (category === 'beverages') firebaseCategory = 'Beverages';
+                if (category === 'beverages' || category === 'beverage') firebaseCategory = 'Beverages';
                 else if (category === 'pastries') firebaseCategory = 'Pastries';
                 else if (category === 'ingredients') firebaseCategory = 'Ingredients';
 
                 document.getElementById('productCategory').value = firebaseCategory;
                 document.getElementById('productStock').value = stock;
+
+                // Toggle ingredient fields based on category
+                toggleIngredientFields();
 
                 // Show existing image if available
                 if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
@@ -1715,13 +1771,29 @@
                     }
 
                     // Prepare product data
+                    const category = document.getElementById('productCategory').value;
+                    const quantity = parseFloat(document.getElementById('productStock').value);
+
                     const productData = {
                         name: document.getElementById('productName').value,
                         price: parseFloat(document.getElementById('productPrice').value),
-                        category: document.getElementById('productCategory').value,
-                        quantity: parseInt(document.getElementById('productStock').value),
+                        category: category,
+                        quantity: quantity,
+                        unit: document.getElementById('productUnit').value,
                         imageUri: imageUrl
                     };
+
+                    // Add ingredient-specific fields if category is Ingredients
+                    if (category === 'Ingredients') {
+                        productData.inventoryA = parseFloat(document.getElementById('productInventoryA').value) || quantity;
+                        productData.inventoryB = parseFloat(document.getElementById('productInventoryB').value) || 0;
+                        productData.costPerUnit = parseFloat(document.getElementById('productCostPerUnit').value) || 0;
+                    } else {
+                        // For beverages and pastries, set inventory_a to quantity
+                        productData.inventoryA = quantity;
+                        productData.inventoryB = 0;
+                        productData.costPerUnit = 0;
+                    }
 
                     if (!productData.name || !productData.category) {
                         alert('❌ Please fill in product name and category');
@@ -1795,6 +1867,9 @@
                     closeModal();
                 }
             });
+
+            // Add event listener for category change to show/hide ingredient fields
+            document.getElementById('productCategory').addEventListener('change', toggleIngredientFields);
 
             // ============================================
             // AUTO-APPLY "ALL" FILTER ON PAGE LOAD
