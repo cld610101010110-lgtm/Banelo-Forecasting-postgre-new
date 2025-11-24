@@ -1715,7 +1715,7 @@
                         name: document.getElementById('productName').value,
                         price: parseFloat(document.getElementById('productPrice').value),
                         category: document.getElementById('productCategory').value,
-                        quantity: parseInt(document.getElementById('productStock').value),
+                        quantity: parseFloat(document.getElementById('productStock').value),
                         imageUri: imageUrl
                     };
 
@@ -1731,7 +1731,7 @@
                     let url;
                     if (currentEditId) {
                         url = '/dashboard/api/products/update/';
-                        productData.id = currentEditId;
+                        productData.productId = currentEditId;
                     } else {
                         url = '/dashboard/api/products/add/';
                     }
@@ -1750,6 +1750,10 @@
                     if (result.success) {
                         closeModal();
                         showNotification(result.message, 'success');
+                        // Reload page to show updated product list
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
                     } else {
                         showNotification(result.message, 'error');
                         submitBtn.innerHTML = originalBtnText;

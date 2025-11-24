@@ -1935,7 +1935,8 @@ def add_product_view(request):
             unit=data.get('unit', 'pcs'),
             inventory_a=float(data.get('inventoryA', data.get('quantity', 0))),
             inventory_b=0,
-            cost_per_unit=float(data.get('costPerUnit', 0))
+            cost_per_unit=float(data.get('costPerUnit', 0)),
+            image_uri=data.get('imageUri', '')
         )
 
         log_audit('Product Added', request.user, f'Added product: {product.name}')
@@ -1983,6 +1984,8 @@ def update_product_view(request):
             product.inventory_b = float(data['inventoryB'])
         if 'costPerUnit' in data:
             product.cost_per_unit = float(data['costPerUnit'])
+        if 'imageUri' in data:
+            product.image_uri = data['imageUri']
 
         product.save()
 
