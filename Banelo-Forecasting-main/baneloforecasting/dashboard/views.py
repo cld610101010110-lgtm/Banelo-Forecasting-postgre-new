@@ -1117,11 +1117,15 @@ def recipes_view(request):
                     'stock': ingredient_stock
                 })
 
+            # Convert ingredients to JSON string for JavaScript
+            ingredients_json = json.dumps(ingredients_data)
+
             recipes_list.append({
                 'id': recipe.firebase_id or str(recipe.id),
                 'productName': recipe.product_name or 'Unknown',
                 'productFirebaseId': recipe.product_firebase_id or '',
-                'ingredients': ingredients_data,
+                'ingredients': ingredients_data,  # For template rendering
+                'ingredientsJson': ingredients_json,  # For JavaScript
                 'ingredientCount': len(ingredients_data)
             })
 
@@ -1924,30 +1928,43 @@ def add_product_view(request):
     try:
         data = json.loads(request.body)
         print("\n🔥 ADD PRODUCT API CALLED (PostgreSQL)")
+        print(f"Received data: {data}")
+
+        # Handle both imageUri and imageUrl
+        image_url = data.get('imageUri') or data.get('imageUrl') or ''
 
         import uuid
+        quantity = float(data.get('quantity', 0))
+
         product = Product.objects.create(
             firebase_id=str(uuid.uuid4()),
             name=data.get('name'),
             category=data.get('category'),
             price=float(data.get('price', 0)),
-            quantity=float(data.get('quantity', 0)),
+            quantity=quantity,
             unit=data.get('unit', 'pcs'),
-            inventory_a=float(data.get('inventoryA', data.get('quantity', 0))),
-            inventory_b=0,
-            cost_per_unit=float(data.get('costPerUnit', 0))
+            inventory_a=float(data.get('inventoryA', quantity)),  # Default to quantity if not provided
+            inventory_b=float(data.get('inventoryB', 0)),
+            cost_per_unit=float(data.get('costPerUnit', 0)),
+            image_uri=image_url
         )
+
+        print(f"✅ Product created: {product.name} (ID: {product.firebase_id})")
 
         log_audit('Product Added', request.user, f'Added product: {product.name}')
 
+        # Reload page after successful add
         return JsonResponse({
             'success': True,
             'message': f'Product {product.name} added successfully!',
-            'productId': product.firebase_id
+            'productId': product.firebase_id,
+            'reload': True  # Signal frontend to reload
         })
 
     except Exception as e:
         print(f"❌ Error adding product: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'message': str(e)})
 
 
@@ -1958,8 +1975,13 @@ def update_product_view(request):
     try:
         data = json.loads(request.body)
         print("\n🔥 UPDATE PRODUCT API CALLED (PostgreSQL)")
+        print(f"Received data: {data}")
 
-        product_id = data.get('productId')
+        # Handle both 'id' and 'productId' for backward compatibility
+        product_id = data.get('id') or data.get('productId')
+
+        if not product_id:
+            return JsonResponse({'success': False, 'message': 'Product ID is required'})
 
         try:
             product = Product.objects.get(Q(firebase_id=product_id) | Q(id=product_id))
@@ -1974,7 +1996,11 @@ def update_product_view(request):
         if 'price' in data:
             product.price = float(data['price'])
         if 'quantity' in data:
-            product.quantity = float(data['quantity'])
+            quantity_val = float(data['quantity'])
+            product.quantity = quantity_val
+            # If inventoryA not explicitly set, update it with quantity
+            if 'inventoryA' not in data and 'inventoryB' not in data:
+                product.inventory_a = quantity_val
         if 'unit' in data:
             product.unit = data['unit']
         if 'inventoryA' in data:
@@ -1984,17 +2010,28 @@ def update_product_view(request):
         if 'costPerUnit' in data:
             product.cost_per_unit = float(data['costPerUnit'])
 
+        # Handle both imageUri and imageUrl
+        image_url = data.get('imageUri') or data.get('imageUrl')
+        if image_url is not None:
+            product.image_uri = image_url
+
         product.save()
+
+        print(f"✅ Product updated: {product.name} (ID: {product.firebase_id})")
 
         log_audit('Product Updated', request.user, f'Updated product: {product.name}')
 
+        # Reload page after successful update
         return JsonResponse({
             'success': True,
-            'message': f'Product {product.name} updated successfully!'
+            'message': f'Product {product.name} updated successfully!',
+            'reload': True  # Signal frontend to reload
         })
 
     except Exception as e:
         print(f"❌ Error updating product: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'message': str(e)})
 
 
@@ -2005,8 +2042,13 @@ def delete_product_view(request):
     try:
         data = json.loads(request.body)
         print("\n🔥 DELETE PRODUCT API CALLED (PostgreSQL)")
+        print(f"Received data: {data}")
 
-        product_id = data.get('productId')
+        # Handle both 'id' and 'productId' for backward compatibility
+        product_id = data.get('id') or data.get('productId')
+
+        if not product_id:
+            return JsonResponse({'success': False, 'message': 'Product ID is required'})
 
         try:
             product = Product.objects.get(Q(firebase_id=product_id) | Q(id=product_id))
@@ -2015,6 +2057,8 @@ def delete_product_view(request):
 
         product_name = product.name
         product.delete()
+
+        print(f"✅ Product deleted: {product_name}")
 
         log_audit('Product Deleted', request.user, f'Deleted product: {product_name}')
 
@@ -2025,4 +2069,6 @@ def delete_product_view(request):
 
     except Exception as e:
         print(f"❌ Error deleting product: {e}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'success': False, 'message': str(e)})

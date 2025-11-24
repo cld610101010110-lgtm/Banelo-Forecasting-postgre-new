@@ -661,7 +661,7 @@
                 </div>
                 <div class="recipe-actions">
                     <button class="btn-icon btn-edit"
-                            onclick="editRecipe('{{ recipe.id }}', '{{ recipe.productName }}', '{{ recipe.productFirebaseId }}', {{ recipe.ingredients|safe }})"
+                            onclick="editRecipe('{{ recipe.id }}', '{{ recipe.productName }}', '{{ recipe.productFirebaseId }}', {{ recipe.ingredientsJson|safe }})"
                             title="Edit Recipe">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
@@ -930,6 +930,10 @@ document.getElementById('recipeForm').addEventListener('submit', async function(
         if (result.success) {
             closeModal();
             showNotification(result.message, 'success');
+            // Reload page after 1.5 seconds to show updated data
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } else {
             showNotification(result.message, 'error');
             submitBtn.innerHTML = originalText;
@@ -964,6 +968,10 @@ function deleteRecipe(id, productName) {
 
             if (result.success) {
                 showNotification(result.message, 'success');
+                // Reload page after 1.5 seconds to show updated data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
             } else {
                 showNotification(result.message, 'error');
             }

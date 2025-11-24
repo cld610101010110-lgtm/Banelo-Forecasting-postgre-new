@@ -1670,6 +1670,10 @@
 
                         if (result.success) {
                             showNotification(result.message, 'success');
+                            // Reload page after 1.5 seconds to show updated data
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
                         } else {
                             showNotification(result.message, 'error');
                         }
@@ -1750,6 +1754,10 @@
                     if (result.success) {
                         closeModal();
                         showNotification(result.message, 'success');
+                        // Reload page after 1.5 seconds to show updated data
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
                     } else {
                         showNotification(result.message, 'error');
                         submitBtn.innerHTML = originalBtnText;
