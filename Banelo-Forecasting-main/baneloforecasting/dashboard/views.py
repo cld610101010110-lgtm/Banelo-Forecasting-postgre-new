@@ -407,18 +407,53 @@ def dashboard_view(request):
 
 @login_required
 def inventory_view(request):
-    """Display inventory page with data from API"""
+    """Display inventory page with data from Firebase"""
     try:
-        print("\n🔥 INVENTORY VIEW CALLED (API Mode)")
+        print("\n🔥 INVENTORY VIEW CALLED (Firebase Mode)")
 
-        # Get API service
-        api = get_api_service()
+        # Get Firebase service instead of API
+        from .firebase_service import FirebaseService
+        firebase = FirebaseService()
 
-        # Get all products from API
-        products = api.get_products()
+        # Get all products from Firebase
+        products_raw = firebase.get_all_products()
+        products = []
+        for p in products_raw:
+            # Convert Firebase data format
+            product_dict = {
+                'firebase_id': p.get('id'),
+                'firebaseId': p.get('id'),
+                'id': p.get('id'),
+                'name': p.get('name'),
+                'price': p.get('price'),
+                'category': p.get('category'),
+                'quantity': p.get('quantity'),
+                'inventory_a': p.get('inventoryA', p.get('inventory_a')),
+                'inventoryA': p.get('inventoryA', p.get('inventory_a')),
+                'inventory_b': p.get('inventoryB', p.get('inventory_b')),
+                'inventoryB': p.get('inventoryB', p.get('inventory_b')),
+                'cost_per_unit': p.get('costPerUnit', p.get('cost_per_unit')),
+                'costPerUnit': p.get('costPerUnit', p.get('cost_per_unit')),
+                'image_uri': p.get('imageUri', p.get('image_uri')),
+                'imageUri': p.get('imageUri', p.get('image_uri')),
+            }
+            products.append(product_dict)
 
-        # Get all recipes from API
-        recipes = api.get_recipes()
+        # Get all recipes from local database
+        from .models import Recipe
+        recipes_queryset = Recipe.objects.all()
+        recipes = []
+        for r in recipes_queryset:
+            recipe_dict = {
+                'id': r.id,
+                'firebase_id': r.firebase_id,
+                'firebaseId': r.firebase_id,
+                'product_firebase_id': r.product_firebase_id,
+                'productFirebaseId': r.product_firebase_id,
+                'product_name': r.product_name,
+                'productName': r.product_name,
+            }
+            recipes.append(recipe_dict)
 
         recipes_by_id = {}
         recipes_by_name = {}
