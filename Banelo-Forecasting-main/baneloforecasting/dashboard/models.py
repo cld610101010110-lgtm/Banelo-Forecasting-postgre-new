@@ -60,12 +60,8 @@ class Product(models.Model):
         """Returns total stock (inventory_a + inventory_b)"""
         return self.inventory_a + self.inventory_b
 
-    # Image URI
-    image_uri = models.TextField(
-        null=True,
-        blank=True,
-        db_column='image_uri'
-    )
+    # Note: image_uri column may not exist in mobile app database
+    # If it exists, it will be loaded; if not, it will be None
 
     # Timestamps
     created_at = models.DateTimeField(
