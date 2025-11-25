@@ -83,12 +83,15 @@ WSGI_APPLICATION = 'baneloforecasting.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# SQLite for Django's internal tables (auth, sessions, etc.)
-# Business data (products, sales, etc.) comes from the Node.js API
+# PostgreSQL database (shared with Node.js API and Mobile POS)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'banelo_db',
+        'USER': 'postgres',
+        'PASSWORD': 'admin123',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
