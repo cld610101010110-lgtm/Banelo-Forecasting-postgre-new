@@ -84,14 +84,16 @@ WSGI_APPLICATION = 'baneloforecasting.wsgi.application'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 # PostgreSQL database (shared with Node.js API and Mobile POS)
+# Configuration loaded from .env file
+# IMPORTANT: Update DB_HOST in .env to your Mobile POS laptop's IP address
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'banelo_db',
-        'USER': 'postgres',
-        'PASSWORD': 'admin123',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('DB_NAME', 'banelo_db'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'admin123'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
